@@ -39,11 +39,11 @@ using Pacco.Services.Availability.Core.Repositories;
 using Pacco.Services.Availability.Infrastructure.Contexts;
 using Pacco.Services.Availability.Infrastructure.Decorators;
 using Pacco.Services.Availability.Infrastructure.Exceptions;
-using Pacco.Services.Availability.Infrastructure.Jaeger;
 using Pacco.Services.Availability.Infrastructure.Logging;
 using Pacco.Services.Availability.Infrastructure.Metrics;
 using Pacco.Services.Availability.Infrastructure.Mongo.Documents;
 using Pacco.Services.Availability.Infrastructure.Mongo.Repositories;
+using Pacco.Services.Availability.Infrastructure.QoS;
 using Pacco.Services.Availability.Infrastructure.Services;
 using Pacco.Services.Availability.Infrastructure.Services.Clients;
 
@@ -84,7 +84,7 @@ namespace Pacco.Services.Availability.Infrastructure
                 .AddRedis()
                 .AddMetrics()
                 .AddJaeger()
-                .AddJaegerDecorators()
+                .AddQoSTrackingDecorators()
                 .AddHandlersLogging()
                 .AddMongoRepository<ResourceDocument, Guid>("resources")
                 .AddWebApiSwaggerDocs()
@@ -96,6 +96,7 @@ namespace Pacco.Services.Availability.Infrastructure
             app.UseErrorHandler()
                 .UseSwaggerDocs()
                 .UseJaeger()
+                .UseCache()
                 .UseConvey()
                 .UsePublicContracts<ContractAttribute>()
                 .UseMetrics()
