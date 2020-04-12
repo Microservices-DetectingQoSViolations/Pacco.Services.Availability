@@ -5,6 +5,7 @@ using OpenTracing;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Pacco.Services.Availability.Infrastructure.QoS
 {
@@ -12,7 +13,8 @@ namespace Pacco.Services.Availability.Infrastructure.QoS
     {
         private readonly Stopwatch _stopwatch = new Stopwatch();
 
-        private readonly IDistributedCache _cache;
+        private readonly IDistributedCache _distributedCache;
+        private readonly IMemoryCache _memoryCache;
         private readonly IQoSCacheFormatter _qoSCacheFormatter;
         private readonly IQoSViolateRaiser _qoSViolateRaiser;
 
@@ -23,12 +25,15 @@ namespace Pacco.Services.Availability.Infrastructure.QoS
         private string _cacheCommandName;
         private string _commandName;
 
+        private const long LongElapsedMilliseconds = 60000;
+
         public QoSTimeViolationChecker(IDistributedCache cache, IQoSCacheFormatter qoSCacheFormatter, IQoSViolateRaiser qoSViolateRaiser, 
-            QoSTrackingOptions options, AppOptions appOptions)
+            QoSTrackingOptions options, AppOptions appOptions, IDistributedCache distributedCache, IMemoryCache memoryCache)
         {
-            _cache = cache;
             _qoSCacheFormatter = qoSCacheFormatter;
             _qoSViolateRaiser = qoSViolateRaiser;
+            _distributedCache = distributedCache;
+            _memoryCache = memoryCache;
             _windowComparerSize = options.WindowComparerSize;
             _appServiceName = appOptions.Service;
         }
@@ -83,25 +88,18 @@ namespace Pacco.Services.Availability.Infrastructure.QoS
 
         private async Task<long> GetRequiredTimeFromCache()
         {
-            var cacheValue = await _cache.GetAsync(_cacheCommandName);
+            var cacheValue = await _distributedCache.GetAsync(_cacheCommandName);
 
             return _qoSCacheFormatter.DeserializeNumber(cacheValue);
 
         }
 
-        private async Task<int> GetActualIdxFromCache()
-        {
-            var cacheIdx = await _cache.GetAsync(GetIndexName());
+        private Task<int> GetActualIdxFromCache()
+            => _memoryCache.GetOrCreateAsync(GetIndexName(), cacheEntry => Task.FromResult(0));
 
-            return _qoSCacheFormatter.DeserializeInt32(cacheIdx);
-        }
-
-        private async Task<long[]> GetActualArrayFromCache()
-        {
-            var cacheIdx = await _cache.GetAsync(GetArrayName());
-
-            return _qoSCacheFormatter.DeserializeArrayNumber(cacheIdx);
-        }
+        private Task<long[]> GetActualArrayFromCache()
+            => _memoryCache.GetOrCreateAsync(GetArrayName(),
+                cacheEntry => Task.FromResult(Enumerable.Repeat(LongElapsedMilliseconds, _windowComparerSize).ToArray()));
 
         private async Task SetValuesInCache(long handlingTime, long requiredHandlingTime)
         {
@@ -110,16 +108,16 @@ namespace Pacco.Services.Availability.Infrastructure.QoS
 
             var nextIndex = (actualIdx + 1) % _windowComparerSize;
             cachedArray[nextIndex] = handlingTime;
-
-            await _cache.SetAsync(GetArrayName(), _qoSCacheFormatter.SerializeArrayNumber(cachedArray));
-            await _cache.SetAsync(GetIndexName(), _qoSCacheFormatter.SerializeInt32(nextIndex));
+            
+            _memoryCache.Set(GetArrayName(), _qoSCacheFormatter.SerializeArrayNumber(cachedArray));
+            _memoryCache.Set(GetIndexName(), _qoSCacheFormatter.SerializeInt32(nextIndex));
 
             if (nextIndex == 0)
             {
                 var meanHandlerTime = cachedArray.Average();
                 if (meanHandlerTime < requiredHandlingTime)
                 {
-                    await _cache.SetAsync(_cacheCommandName,
+                    await _distributedCache.SetAsync(_cacheCommandName,
                         _qoSCacheFormatter.SerializeNumber((long) meanHandlerTime));
                 }
             }
