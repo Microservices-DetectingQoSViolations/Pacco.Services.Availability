@@ -1,11 +1,9 @@
-﻿using System;
-using System.Linq;
-using Convey.CQRS.Commands;
-using System.Threading.Tasks;
+﻿using Convey.CQRS.Commands;
 using OpenTracing;
 using OpenTracing.Tag;
 using Pacco.Services.Availability.Application.Exceptions;
-using Pacco.Services.Availability.Core.Exceptions;
+using System;
+using System.Threading.Tasks;
 
 namespace Pacco.Services.Availability.Infrastructure.QoS
 {
@@ -55,9 +53,6 @@ namespace Pacco.Services.Availability.Infrastructure.QoS
                 {
                     case AppException _:
                         _qoSViolateRaiser.Raise(span, ViolateType.AmongServicesInconsistency);
-                        break;
-                    case DomainException _:
-                        _qoSViolateRaiser.Raise(span, ViolateType.DomainDataInconsistency);
                         break;
                 }
                 span.Log(exception.Message);

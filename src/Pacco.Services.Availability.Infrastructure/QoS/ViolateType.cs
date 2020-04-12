@@ -3,7 +3,6 @@
     public enum ViolateType
     {
         HandlerTimeExceeded,
-        AmongServicesInconsistency,
-        DomainDataInconsistency,
+        AmongServicesInconsistency
     }
 }
