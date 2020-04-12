@@ -77,21 +77,15 @@ namespace Pacco.Services.Availability.Infrastructure.QoS
         {
             var cache = scope.ServiceProvider.GetService<IDistributedCache>();
             _formatter = scope.ServiceProvider.GetService<IQoSCacheFormatter>();
-            var windowComparerSize = scope.ServiceProvider.GetService<QoSTrackingOptions>().WindowComparerSize;
 
             var serializedLongElapsedMilliseconds = _formatter.SerializeNumber(LongElapsedMilliseconds);
-            var serialized0 = _formatter.SerializeInt32(0);
-            var longElapsedMillisecondsArray = Enumerable.Repeat(LongElapsedMilliseconds, windowComparerSize).ToArray();
-            var serializedLongElapsedMillisecondsArray = _formatter.SerializeArrayNumber(longElapsedMillisecondsArray);
 
             allHandlersClasses
                 .ToList()
                 .ForEach(key =>
                 {
                     if (cache.Get(key) is {}) return;
-                    cache.Set(key, serializedLongElapsedMilliseconds); 
-                    cache.Set(key + Idx, serialized0);
-                    cache.Set(key + Arr, serializedLongElapsedMillisecondsArray);
+                    cache.Set(key, serializedLongElapsedMilliseconds);
                 });
         }
     }
