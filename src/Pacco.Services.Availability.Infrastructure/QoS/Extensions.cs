@@ -1,23 +1,20 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using Convey;
+﻿using Convey;
 using Convey.CQRS.Commands;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.Caching.Distributed;
-using Microsoft.Extensions.DependencyInjection;
-using System.Linq;
 using Convey.CQRS.Events;
 using Convey.CQRS.Queries;
 using Convey.Types;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.DependencyInjection;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Pacco.Services.Availability.Infrastructure.QoS
 {
     internal static class Extensions
     {
         private const string SectionName = "qoSTracking";
-        private const string Idx = "_idx";
-        private const string Arr = "_arr";
 
         private const long LongElapsedMilliseconds = 60000;
         private static IQoSCacheFormatter _formatter;
@@ -36,6 +33,8 @@ namespace Pacco.Services.Availability.Infrastructure.QoS
                 builder.Services.AddTransient<IQoSTimeViolationChecker, QoSTimeViolationChecker>();
 
                 builder.Services.TryDecorate(typeof(ICommandHandler<>), typeof(QoSTrackerCommandHandlerDecorator<>));
+                builder.Services.TryDecorate(typeof(IEventHandler<>), typeof(QoSTrackerEventHandlerDecorator<>));
+                builder.Services.TryDecorate(typeof(IQueryHandler<,>), typeof(QoSTrackerQueryHandlerDecorator<,>));
             }
 
             return builder;
@@ -90,11 +89,21 @@ namespace Pacco.Services.Availability.Infrastructure.QoS
         }
     }
 
-    internal static class CommandExtensions
+    internal static class MessageExtensions
     {
         public static string GetCommandName<TCommand>(this TCommand command) where TCommand : class, ICommand
         {
             return ToUnderscoreCase("C" + command.GetType().Name);
+        }
+
+        public static string GetQueryName<TQuery>(this TQuery query) where TQuery : class, IQuery
+        {
+            return ToUnderscoreCase("Q" + query.GetType().Name);
+        }
+
+        public static string GetEventName<TEvent>(this TEvent @event) where TEvent : class, IEvent
+        {
+            return ToUnderscoreCase("E" + @event.GetType().Name);
         }
 
         public static string ToUnderscoreCase(this string str)

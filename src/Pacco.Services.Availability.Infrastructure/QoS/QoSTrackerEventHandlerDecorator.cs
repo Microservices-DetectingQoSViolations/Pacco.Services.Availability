@@ -1,4 +1,4 @@
-﻿using Convey.CQRS.Commands;
+﻿using Convey.CQRS.Events;
 using OpenTracing;
 using OpenTracing.Tag;
 using Pacco.Services.Availability.Application.Exceptions;
@@ -7,45 +7,44 @@ using System.Threading.Tasks;
 
 namespace Pacco.Services.Availability.Infrastructure.QoS
 {
-    public class QoSTrackerCommandHandlerDecorator<TCommand> : ICommandHandler<TCommand> 
-        where TCommand : class, ICommand
+    public class QoSTrackerEventHandlerDecorator<TEvent> : IEventHandler<TEvent>
+        where TEvent : class, IEvent
     {
-        private readonly ICommandHandler<TCommand> _handler;
+        private readonly IEventHandler<TEvent> _handler;
         private readonly ITracer _tracer;
         private readonly IQoSTrackingSampler _trackingSampler;
         private readonly IQoSTimeViolationChecker _qoSViolateChecker;
         private readonly IQoSViolateRaiser _qoSViolateRaiser;
 
-        public QoSTrackerCommandHandlerDecorator(ICommandHandler<TCommand> handler, ITracer tracer,
-            IQoSTimeViolationChecker qoSViolateChecker, IQoSTrackingSampler trackingSampler,
-            IQoSViolateRaiser qoSViolateRaiser)
+        public QoSTrackerEventHandlerDecorator(IEventHandler<TEvent> handler, ITracer tracer,
+            IQoSTrackingSampler trackingSampler, IQoSTimeViolationChecker qoSViolateChecker, IQoSViolateRaiser qoSViolateRaiser)
         {
             _handler = handler;
             _tracer = tracer;
             _trackingSampler = trackingSampler;
-            _qoSViolateRaiser = qoSViolateRaiser;
             _qoSViolateChecker = qoSViolateChecker;
+            _qoSViolateRaiser = qoSViolateRaiser;
         }
 
-        public async Task HandleAsync(TCommand command)
+        public async Task HandleAsync(TEvent @event)
         {
             if (!_trackingSampler.DoWork())
             {
-                await _handler.HandleAsync(command);
+                await _handler.HandleAsync(@event);
                 return;
             }
 
-            var commandName = command.GetCommandName();
-            using var scope = BuildScope(commandName);
+            var eventName = @event.GetEventName();
+            using var scope = BuildScope(eventName);
             var span = scope.Span;
 
             _qoSViolateChecker
-                .Build(span, commandName)
+                .Build(span, eventName)
                 .Run();
 
             try
             {
-                await _handler.HandleAsync(command);
+                await _handler.HandleAsync(@event);
             }
             catch (Exception exception)
             {
@@ -63,11 +62,11 @@ namespace Pacco.Services.Availability.Infrastructure.QoS
             await _qoSViolateChecker.Analyze();
         }
 
-        private IScope BuildScope(string commandName)
+        private IScope BuildScope(string eventName)
         {
             var scope = _tracer
-                .BuildSpan($"handling {commandName}")
-                .WithTag("message-type", "command");
+                .BuildSpan($"handling {eventName}")
+                .WithTag("message-type", "event");
 
             if (_tracer.ActiveSpan is { })
             {

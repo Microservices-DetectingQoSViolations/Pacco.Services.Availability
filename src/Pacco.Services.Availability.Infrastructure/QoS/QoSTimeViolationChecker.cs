@@ -109,8 +109,8 @@ namespace Pacco.Services.Availability.Infrastructure.QoS
             var nextIndex = (actualIdx + 1) % _windowComparerSize;
             cachedArray[nextIndex] = handlingTime;
             
-            _memoryCache.Set(GetArrayName(), _qoSCacheFormatter.SerializeArrayNumber(cachedArray));
-            _memoryCache.Set(GetIndexName(), _qoSCacheFormatter.SerializeInt32(nextIndex));
+            _memoryCache.Set(GetArrayName(), cachedArray);
+            _memoryCache.Set(GetIndexName(), nextIndex);
 
             if (nextIndex == 0)
             {
