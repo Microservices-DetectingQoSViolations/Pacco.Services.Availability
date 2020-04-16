@@ -1,3 +1,5 @@
+using Convey.Exceptions;
+
 namespace Pacco.Services.Availability.Core.Exceptions
 {
     public class InvalidResourceTagsException : DomainException

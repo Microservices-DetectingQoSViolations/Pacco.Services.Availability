@@ -4,4 +4,10 @@
         <TargetFramework>netcoreapp3.1</TargetFramework>
     </PropertyGroup>
 
+    <ItemGroup>
+      <Reference Include="Convey.Exceptions">
+        <HintPath>..\..\..\Convey.Ext\Convey.Exceptions\Convey.Exceptions\bin\Debug\netcoreapp3.1\Convey.Exceptions.dll</HintPath>
+      </Reference>
+    </ItemGroup>
+
 </Project>
