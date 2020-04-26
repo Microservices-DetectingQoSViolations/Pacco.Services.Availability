@@ -12,44 +12,33 @@ namespace Pacco.Services.Availability.Infrastructure.QoS
         private readonly IQueryHandler<TQuery, TResult> _handler;
         private readonly ITracer _tracer;
         private readonly IQoSTrackingSampler _trackingSampler;
-        private readonly IQoSTimeViolationChecker _qoSViolateChecker;
+        private readonly IQoSTimeViolationChecker<TQuery> _qoSViolateChecker;
+
+        private readonly bool _withTracing;
 
         public QoSTrackerQueryHandlerDecorator(IQueryHandler<TQuery, TResult> handler,
-            ITracer tracer, IQoSTrackingSampler trackingSampler, IQoSTimeViolationChecker qoSViolateChecker)
+            ITracer tracer, IQoSTrackingSampler trackingSampler, IQoSTimeViolationChecker<TQuery> qoSViolateChecker,
+            QoSTrackingOptions trackingOptions)
         {
             _handler = handler;
             _tracer = tracer;
             _trackingSampler = trackingSampler;
             _qoSViolateChecker = qoSViolateChecker;
+            _withTracing = trackingOptions.EnabledTracing && tracer is { };
         }
 
         public async Task<TResult> HandleAsync(TQuery query)
         {
-            TResult queryResult;
-
             if (!_trackingSampler.DoWork())
             {
                 return await _handler.HandleAsync(query);
             }
 
-            var queryName = query.GetQueryName();
-            using var scope = BuildScope(queryName);
-            var span = scope.Span;
+            using var scope = _withTracing ? BuildScope(query.GetQueryName()) : null;
 
-            _qoSViolateChecker
-                .Build(span, queryName)
-                .Run();
+            _qoSViolateChecker.Run();
 
-            try
-            {
-                queryResult = await _handler.HandleAsync(query);
-            }
-            catch (Exception exception)
-            {
-                span.Log(exception.Message);
-                span.SetTag(Tags.Error, true);
-                throw;
-            }
+            var queryResult = await _handler.HandleAsync(query);
 
             await _qoSViolateChecker.Analyze();
 

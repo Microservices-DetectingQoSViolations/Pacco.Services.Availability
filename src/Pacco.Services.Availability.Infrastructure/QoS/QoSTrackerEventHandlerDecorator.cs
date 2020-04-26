@@ -13,11 +13,11 @@ namespace Pacco.Services.Availability.Infrastructure.QoS
         private readonly IEventHandler<TEvent> _handler;
         private readonly ITracer _tracer;
         private readonly IQoSTrackingSampler _trackingSampler;
-        private readonly IQoSTimeViolationChecker _qoSViolateChecker;
+        private readonly IQoSTimeViolationChecker<TEvent> _qoSViolateChecker;
         private readonly IQoSViolateRaiser _qoSViolateRaiser;
 
         public QoSTrackerEventHandlerDecorator(IEventHandler<TEvent> handler, ITracer tracer,
-            IQoSTrackingSampler trackingSampler, IQoSTimeViolationChecker qoSViolateChecker, IQoSViolateRaiser qoSViolateRaiser)
+            IQoSTrackingSampler trackingSampler, IQoSTimeViolationChecker<TEvent> qoSViolateChecker, IQoSViolateRaiser qoSViolateRaiser)
         {
             _handler = handler;
             _tracer = tracer;
@@ -38,9 +38,7 @@ namespace Pacco.Services.Availability.Infrastructure.QoS
             using var scope = BuildScope(eventName);
             var span = scope.Span;
 
-            _qoSViolateChecker
-                .Build(span, eventName)
-                .Run();
+            _qoSViolateChecker.Run();
 
             try
             {
@@ -51,7 +49,7 @@ namespace Pacco.Services.Availability.Infrastructure.QoS
                 switch (exception)
                 {
                     case AppException _:
-                        _qoSViolateRaiser.Raise(span, ViolateType.AmongServicesInconsistency);
+                        _qoSViolateRaiser.Raise(ViolateType.AmongServicesInconsistency);
                         break;
                 }
                 span.Log(exception.Message);

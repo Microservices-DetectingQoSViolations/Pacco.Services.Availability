@@ -1,6 +1,5 @@
 ﻿using Convey.CQRS.Commands;
 using OpenTracing;
-using OpenTracing.Tag;
 using Pacco.Services.Availability.Application.Exceptions;
 using System;
 using System.Threading.Tasks;
@@ -13,18 +12,21 @@ namespace Pacco.Services.Availability.Infrastructure.QoS
         private readonly ICommandHandler<TCommand> _handler;
         private readonly ITracer _tracer;
         private readonly IQoSTrackingSampler _trackingSampler;
-        private readonly IQoSTimeViolationChecker _qoSViolateChecker;
+        private readonly IQoSTimeViolationChecker<TCommand> _qoSViolateChecker;
         private readonly IQoSViolateRaiser _qoSViolateRaiser;
 
+        private readonly bool _withTracing;
+
         public QoSTrackerCommandHandlerDecorator(ICommandHandler<TCommand> handler, ITracer tracer,
-            IQoSTimeViolationChecker qoSViolateChecker, IQoSTrackingSampler trackingSampler,
-            IQoSViolateRaiser qoSViolateRaiser)
+            IQoSTimeViolationChecker<TCommand> qoSViolateChecker, IQoSTrackingSampler trackingSampler,
+            IQoSViolateRaiser qoSViolateRaiser, QoSTrackingOptions trackingOptions)
         {
             _handler = handler;
             _tracer = tracer;
             _trackingSampler = trackingSampler;
             _qoSViolateRaiser = qoSViolateRaiser;
             _qoSViolateChecker = qoSViolateChecker;
+            _withTracing = trackingOptions.EnabledTracing && tracer is { };
         }
 
         public async Task HandleAsync(TCommand command)
@@ -35,13 +37,9 @@ namespace Pacco.Services.Availability.Infrastructure.QoS
                 return;
             }
 
-            var commandName = command.GetCommandName();
-            using var scope = BuildScope(commandName);
-            var span = scope.Span;
+            using var scope = _withTracing ? BuildScope(command.GetCommandName()) : null;
 
-            _qoSViolateChecker
-                .Build(span, commandName)
-                .Run();
+            _qoSViolateChecker.Run();
 
             try
             {
@@ -52,11 +50,9 @@ namespace Pacco.Services.Availability.Infrastructure.QoS
                 switch (exception)
                 {
                     case AppException _:
-                        _qoSViolateRaiser.Raise(span, ViolateType.AmongServicesInconsistency);
+                        _qoSViolateRaiser.Raise(ViolateType.AmongServicesInconsistency);
                         break;
                 }
-                span.Log(exception.Message);
-                span.SetTag(Tags.Error, true);
                 throw;
             }
 

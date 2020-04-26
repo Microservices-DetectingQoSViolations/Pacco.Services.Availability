@@ -3,9 +3,8 @@ using OpenTracing;
 
 namespace Pacco.Services.Availability.Infrastructure.QoS
 {
-    public interface IQoSTimeViolationChecker
+    public interface IQoSTimeViolationChecker<TMessage>
     {
-        IQoSTimeViolationChecker Build(ISpan span, string commandName);
         void Run();
         Task Analyze();
     }

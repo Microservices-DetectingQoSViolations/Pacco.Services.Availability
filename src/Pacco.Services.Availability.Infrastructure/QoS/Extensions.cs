@@ -23,19 +23,29 @@ namespace Pacco.Services.Availability.Infrastructure.QoS
         {
             var qoSTrackingOptions = builder.GetOptions<QoSTrackingOptions>(SectionName);
 
-            if (qoSTrackingOptions.Enabled)
+            if (!qoSTrackingOptions.Enabled)
             {
-                builder.Services.AddSingleton(qoSTrackingOptions);
-                builder.Services.AddSingleton<IQoSTrackingSampler, QoSTrackingSampler>();
-                builder.Services.AddSingleton<IQoSCacheFormatter, QoSCacheFormatter>();
-                builder.Services.AddSingleton<IQoSViolateRaiser, QoSViolateRaiser>();
-
-                builder.Services.AddTransient<IQoSTimeViolationChecker, QoSTimeViolationChecker>();
-
-                builder.Services.TryDecorate(typeof(ICommandHandler<>), typeof(QoSTrackerCommandHandlerDecorator<>));
-                builder.Services.TryDecorate(typeof(IEventHandler<>), typeof(QoSTrackerEventHandlerDecorator<>));
-                builder.Services.TryDecorate(typeof(IQueryHandler<,>), typeof(QoSTrackerQueryHandlerDecorator<,>));
+                return builder;
             }
+
+            builder.Services.AddSingleton(qoSTrackingOptions);
+            builder.Services.AddSingleton<IQoSTrackingSampler, QoSTrackingSampler>();
+            builder.Services.AddSingleton<IQoSCacheFormatter, QoSCacheFormatter>();
+
+            builder.Services.AddTransient(typeof(IQoSTimeViolationChecker<>), typeof(QoSTimeViolationChecker<>));
+
+            if (qoSTrackingOptions.EnabledTracing)
+            {
+                builder.Services.AddSingleton<IQoSViolateRaiser, QoSViolateTracerRaiser>();
+            }
+            else
+            {
+                builder.Services.AddSingleton<IQoSViolateRaiser, QoSViolateSimpleRaiser>();
+            }
+
+            builder.Services.TryDecorate(typeof(ICommandHandler<>), typeof(QoSTrackerCommandHandlerDecorator<>));
+            builder.Services.TryDecorate(typeof(IEventHandler<>), typeof(QoSTrackerEventHandlerDecorator<>));
+            builder.Services.TryDecorate(typeof(IQueryHandler<,>), typeof(QoSTrackerQueryHandlerDecorator<,>));
 
             return builder;
         }
@@ -104,6 +114,18 @@ namespace Pacco.Services.Availability.Infrastructure.QoS
         public static string GetEventName<TEvent>(this TEvent @event) where TEvent : class, IEvent
         {
             return ToUnderscoreCase("E" + @event.GetType().Name);
+        }
+
+        public static string GetMessageName<TMessage>(this IQoSTimeViolationChecker<TMessage> violationChecker)
+        {
+            var message = Activator.CreateInstance<TMessage>();
+            return message switch
+            {
+                ICommand command => command.GetCommandName(),
+                IQuery query => query.GetQueryName(),
+                IEvent @event => @event.GetEventName(),
+                _ => throw new ArgumentException($"Invalid message type {typeof(TMessage)}.")
+            };
         }
 
         public static string ToUnderscoreCase(this string str)
