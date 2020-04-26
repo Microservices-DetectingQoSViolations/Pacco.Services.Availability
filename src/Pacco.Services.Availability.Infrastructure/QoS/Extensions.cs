@@ -3,12 +3,17 @@ using Convey.CQRS.Commands;
 using Convey.CQRS.Events;
 using Convey.CQRS.Queries;
 using Convey.Types;
+using Jaeger;
+using Jaeger.Reporters;
+using Jaeger.Samplers;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.DependencyInjection;
+using OpenTracing;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 
 namespace Pacco.Services.Availability.Infrastructure.QoS
 {
@@ -41,6 +46,12 @@ namespace Pacco.Services.Availability.Infrastructure.QoS
             else
             {
                 builder.Services.AddSingleton<IQoSViolateRaiser, QoSViolateSimpleRaiser>();
+
+                ITracer dummyTracer = new Tracer.Builder(Assembly.GetEntryAssembly().FullName)
+                        .WithReporter(new NoopReporter())
+                        .WithSampler(new ConstSampler(false))
+                        .Build();
+                builder.Services.AddSingleton(dummyTracer);
             }
 
             builder.Services.TryDecorate(typeof(ICommandHandler<>), typeof(QoSTrackerCommandHandlerDecorator<>));
