@@ -6,6 +6,7 @@
 
     <ItemGroup>
         <PackageReference Include="Convey" Version="0.4.*" />
+        <PackageReference Include="Convey.QoS.Violation" Version="0.0.2" />
         <PackageReference Include="Convey.Secrets.Vault" Version="0.4.*" />
         <PackageReference Include="Convey.CQRS.Queries" Version="0.4.*" />
         <PackageReference Include="Convey.Discovery.Consul" Version="0.4.*" />
@@ -31,15 +32,6 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Pacco.Services.Availability.Application\Pacco.Services.Availability.Application.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <Reference Include="Convey.Exceptions">
-        <HintPath>..\..\..\Convey.Ext\Convey.Exceptions\Convey.Exceptions\bin\Debug\netcoreapp3.1\Convey.Exceptions.dll</HintPath>
-      </Reference>
-      <Reference Include="Convey.QoS.Violation">
-        <HintPath>..\..\..\Convey.Ext\Convey.QoS.Violation\Convey.QoS.Violation\Convey.QoS.Violation\bin\Debug\netcoreapp3.1\Convey.QoS.Violation.dll</HintPath>
-      </Reference>
     </ItemGroup>
 
 </Project>

@@ -5,9 +5,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <Reference Include="Convey.Exceptions">
-        <HintPath>..\..\..\Convey.Ext\Convey.Exceptions\Convey.Exceptions\bin\Debug\netcoreapp3.1\Convey.Exceptions.dll</HintPath>
-      </Reference>
+      <PackageReference Include="Convey.Exceptions" Version="1.0.0" />
     </ItemGroup>
 
 </Project>
