@@ -97,6 +97,7 @@ namespace Pacco.Services.Availability.Infrastructure
                 .UseSwaggerDocs()
                 .UseJaeger()
                 .UseConvey()
+                .UseQoSCache()
                 .UsePublicContracts<ContractAttribute>()
                 .UseMetrics()
                 .UseMiddleware<CustomMetricsMiddleware>()
