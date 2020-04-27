@@ -127,16 +127,38 @@ namespace Pacco.Services.Availability.Infrastructure.QoS
             return ToUnderscoreCase("E" + @event.GetType().Name);
         }
 
+        public static string GetCommandName(Type command)
+        {
+            return ToUnderscoreCase("C" + command.Name);
+        }
+
+        public static string GetQueryName(Type query)
+        {
+            return ToUnderscoreCase("Q" + query.Name);
+        }
+
+        public static string GetEventName(Type @event)
+        {
+            return ToUnderscoreCase("E" + @event.Name);
+        }
+
         public static string GetMessageName<TMessage>(this IQoSTimeViolationChecker<TMessage> violationChecker)
         {
-            var message = Activator.CreateInstance<TMessage>();
-            return message switch
+            var type = typeof(TMessage);
+            if (typeof(ICommand).IsAssignableFrom(type))
             {
-                ICommand command => command.GetCommandName(),
-                IQuery query => query.GetQueryName(),
-                IEvent @event => @event.GetEventName(),
-                _ => throw new ArgumentException($"Invalid message type {typeof(TMessage)}.")
-            };
+                return GetCommandName(type);
+            }
+            if (typeof(IQuery).IsAssignableFrom(type))
+            {
+                return GetQueryName(type);
+            }
+            if (typeof(IEvent).IsAssignableFrom(type))
+            {
+                return GetEventName(type);
+            }
+
+            throw new ArgumentException($"Invalid message type {type}.");
         }
 
         public static string ToUnderscoreCase(this string str)
