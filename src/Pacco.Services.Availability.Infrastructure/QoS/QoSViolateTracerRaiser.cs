@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using App.Metrics;
+using Microsoft.Extensions.Logging;
 using OpenTracing;
 using OpenTracing.Tag;
 
@@ -10,17 +11,20 @@ namespace Pacco.Services.Availability.Infrastructure.QoS
 
         private readonly ITracer _tracer;
         private readonly ILogger<IQoSViolateRaiser> _logger;
+        private readonly IQoSViolationMetricsRegistry _qoSViolationMetricsRegistry;
 
-        public QoSViolateTracerRaiser(ITracer tracer, ILogger<IQoSViolateRaiser> logger)
+        public QoSViolateTracerRaiser(ITracer tracer, ILogger<IQoSViolateRaiser> logger, IQoSViolationMetricsRegistry qoSViolationMetricsRegistry)
         {
             _tracer = tracer;
             _logger = logger;
+            _qoSViolationMetricsRegistry = qoSViolationMetricsRegistry;
         }
 
         public void Raise(ViolateType violateType)
         {
             RaiseInLogger(violateType);
             RaiseInTracer(violateType);
+            RaiseAsMetric(violateType);
         }
 
         private void RaiseInLogger(ViolateType violateType)
@@ -39,6 +43,11 @@ namespace Pacco.Services.Availability.Infrastructure.QoS
 
             span.Log($"QoS Violate raised: {violateType}");
             span.SetTag(Violation, violateType.ToString());
+        }
+
+        private void RaiseAsMetric(ViolateType violateType)
+        {
+            _qoSViolationMetricsRegistry.IncrementQoSViolation(violateType);
         }
     }
 }

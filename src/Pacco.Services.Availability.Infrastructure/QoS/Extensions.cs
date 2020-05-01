@@ -41,6 +41,7 @@ namespace Pacco.Services.Availability.Infrastructure.QoS
 
             if (qoSTrackingOptions.EnabledTracing)
             {
+                builder.Services.AddTransient<IQoSViolationMetricsRegistry, QoSViolationMetricsRegistry>();
                 builder.Services.AddSingleton<IQoSViolateRaiser, QoSViolateTracerRaiser>();
             }
             else
