@@ -26,6 +26,8 @@
         <PackageReference Include="Convey.WebApi.CQRS" Version="0.4.*" />
         <PackageReference Include="Convey.WebApi.Security" Version="0.4.*" />
         <PackageReference Include="Convey.WebApi.Swagger" Version="0.4.*" />
+        <PackageReference Include="prometheus-net.AspNetCore" Version="3.5.0" />
+        <PackageReference Include="prometheus-net.DotNetRuntime" Version="3.3.1" />
         <PackageReference Include="SmartFormat.NET" Version="2.5.0" />
     </ItemGroup>
 

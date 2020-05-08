@@ -44,6 +44,7 @@ using Pacco.Services.Availability.Infrastructure.Metrics;
 using Pacco.Services.Availability.Infrastructure.Mongo.Documents;
 using Pacco.Services.Availability.Infrastructure.Mongo.Repositories;
 using Pacco.Services.Availability.Infrastructure.QoS;
+using Pacco.Services.Availability.Infrastructure.QoS.Runtime;
 using Pacco.Services.Availability.Infrastructure.Services;
 using Pacco.Services.Availability.Infrastructure.Services.Clients;
 
@@ -61,14 +62,13 @@ namespace Pacco.Services.Availability.Infrastructure
             builder.Services.AddTransient<IAppContextFactory, AppContextFactory>();
             builder.Services.AddTransient<IEventProcessor, EventProcessor>();
             builder.Services.AddTransient(ctx => ctx.GetRequiredService<IAppContextFactory>().Create());
-            builder.Services.AddHostedService<MetricsJob>();
-            builder.Services.AddSingleton<CustomMetricsMiddleware>();
-            builder.Services.TryDecorate(typeof(ICommandHandler<>), typeof(OutboxCommandHandlerDecorator<>));
-            builder.Services.TryDecorate(typeof(IEventHandler<>), typeof(OutboxEventHandlerDecorator<>));
+            //builder.Services.TryDecorate(typeof(ICommandHandler<>), typeof(OutboxCommandHandlerDecorator<>));
+            //builder.Services.TryDecorate(typeof(IEventHandler<>), typeof(OutboxEventHandlerDecorator<>));
             builder.Services.Scan(s => s.FromAssemblies(AppDomain.CurrentDomain.GetAssemblies())
                 .AddClasses(c => c.AssignableTo(typeof(IDomainEventHandler<>)))
                 .AsImplementedInterfaces()
                 .WithTransientLifetime());
+           // builder.RegisterRuntimeMetrics();
 
             return builder
                 .AddErrorHandler<ExceptionToResponseMapper>()
@@ -100,7 +100,6 @@ namespace Pacco.Services.Availability.Infrastructure
                 .UseConvey()
                 .UsePublicContracts<ContractAttribute>()
                 .UseMetrics()
-                .UseMiddleware<CustomMetricsMiddleware>()
                 .UseCertificateAuthentication()
                 .UseRabbitMq()
                 .SubscribeCommand<AddResource>()

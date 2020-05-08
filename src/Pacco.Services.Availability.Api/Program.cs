@@ -15,6 +15,7 @@ using Pacco.Services.Availability.Application.Commands;
 using Pacco.Services.Availability.Application.DTO;
 using Pacco.Services.Availability.Application.Queries;
 using Pacco.Services.Availability.Infrastructure;
+using Pacco.Services.Availability.Infrastructure.QoS.Runtime;
 
 namespace Pacco.Services.Availability.Api
 {
@@ -43,7 +44,8 @@ namespace Pacco.Services.Availability.Api
                             afterDispatch: (cmd, ctx) => ctx.Response.Created($"resources/{cmd.ResourceId}"))
                         .Post<ReserveResource>("resources/{resourceId}/reservations/{dateTime}")
                         .Delete<ReleaseResourceReservation>("resources/{resourceId}/reservations/{dateTime}")
-                        .Delete<DeleteResource>("resources/{resourceId}")))
+                        .Delete<DeleteResource>("resources/{resourceId}"))
+                    .UseRuntimeMetrics())
                 .UseLogging()
                 .UseVault();
     }
