@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Convey;
 using Convey.Secrets.Vault;
 using Convey.Logging;
+using Convey.QoS.Violation.Runtime;
 using Convey.Types;
 using Convey.WebApi;
 using Convey.WebApi.CQRS;
@@ -43,7 +44,8 @@ namespace Pacco.Services.Availability.Api
                             afterDispatch: (cmd, ctx) => ctx.Response.Created($"resources/{cmd.ResourceId}"))
                         .Post<ReserveResource>("resources/{resourceId}/reservations/{dateTime}")
                         .Delete<ReleaseResourceReservation>("resources/{resourceId}/reservations/{dateTime}")
-                        .Delete<DeleteResource>("resources/{resourceId}")))
+                        .Delete<DeleteResource>("resources/{resourceId}"))
+                    .UseRuntimeMetrics())
                 .UseLogging()
                 .UseVault();
     }
