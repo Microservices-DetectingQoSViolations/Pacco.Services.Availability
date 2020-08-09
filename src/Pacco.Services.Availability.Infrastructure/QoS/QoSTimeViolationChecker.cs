@@ -66,6 +66,27 @@ namespace Pacco.Services.Availability.Infrastructure.QoS
         public async Task Analyze()
         {
             _stopwatch.Stop();
+
+            var instanceWarmingUp = !_memoryCache.GetOrCreate(CacheEntries.InstanceWarmedUp, entry => false);
+
+            if (instanceWarmingUp)
+            {
+                var warmUpMessagesNumber = _memoryCache.GetOrCreate(CacheEntries.WarmUpMessagesNumber, entry => 0);
+                warmUpMessagesNumber += 1;
+
+                if (warmUpMessagesNumber >= _windowComparerSize)
+                {
+                    _memoryCache.Set(CacheEntries.InstanceWarmedUp, true);
+                }
+                else
+                {
+                    _memoryCache.Set(CacheEntries.WarmUpMessagesNumber, warmUpMessagesNumber);
+                }
+
+                return;
+            }
+
+
             var handlingTime = _stopwatch.ElapsedMilliseconds;
             try
             {
